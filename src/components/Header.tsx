@@ -29,13 +29,18 @@ export const Header: React.FC<HeaderProps> = ({
           className="h-12 px-6 bg-[#111] border border-white/20 rounded-xl text-white active:scale-95 transition-all flex items-center gap-2 active:bg-primary/30"
         >
           <ArrowLeft className="w-5 h-5 text-primary" />
-          <span className="font-bold uppercase tracking-widest text-sm">{t('back')}</span>
+          <span className="font-bold uppercase tracking-widest text-sm">
+            {t("back")}
+          </span>
         </button>
       </div>
 
       <div className="absolute left-1/2 -translate-x-1/2 text-center pointer-events-none">
         <h1 className="text-[20px] font-black uppercase tracking-tight text-white whitespace-nowrap">
-          CHOOCHOO <span className="text-primary underline decoration-primary underline-offset-4">TORTAS</span>
+          choo choo{" "}
+          <span className="text-primary underline decoration-primary underline-offset-4">
+            TORTAS
+          </span>
         </h1>
       </div>
 
@@ -53,7 +58,9 @@ export const Header: React.FC<HeaderProps> = ({
                 </span>
               )}
             </div>
-            <span className="text-xl font-black text-black leading-none">{formatCurrency(cartTotal)}</span>
+            <span className="text-xl font-black text-black leading-none">
+              {formatCurrency(cartTotal)}
+            </span>
           </button>
         )}
       </div>

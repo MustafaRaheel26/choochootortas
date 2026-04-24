@@ -33,7 +33,10 @@ export default function App() {
   }, 60000);
 
   const cartTotal = useMemo(() => {
-    return state.cart.reduce((sum, item) => sum + item.totalPrice * item.quantity, 0);
+    return state.cart.reduce(
+      (sum, item) => sum + item.totalPrice * item.quantity,
+      0,
+    );
   }, [state.cart]);
 
   const cartCount = useMemo(() => {
@@ -41,9 +44,14 @@ export default function App() {
   }, [state.cart]);
 
   // Actions
-  const handleStart = (type: OrderType) => 
-    setState({ ...state, view: "menu", orderType: type, selectedCategoryId: "tortas" });
-  
+  const handleStart = (type: OrderType) =>
+    setState({
+      ...state,
+      view: "menu",
+      orderType: type,
+      selectedCategoryId: "tortas",
+    });
+
   const handleSelectCategory = (id: string) => {
     setState({ ...state, view: "menu", selectedCategoryId: id });
   };
@@ -53,21 +61,23 @@ export default function App() {
   };
 
   const handleBack = () => {
-    if (state.view === "menu") setState({ ...state, view: "home", orderType: null });
-    else if (state.view === "customize") setState({ ...state, view: "menu", selectedItem: null });
+    if (state.view === "menu")
+      setState({ ...state, view: "home", orderType: null });
+    else if (state.view === "customize")
+      setState({ ...state, view: "menu", selectedItem: null });
     else if (state.view === "cart") setState({ ...state, view: "menu" });
   };
 
   const handleHome = () => {
     setState(INITIAL_STATE);
-  }
+  };
 
   const addToCart = (customizedItem: Omit<CartItem, "id">) => {
     const id = generateCartItemId(
       customizedItem.menuItem.id,
       customizedItem.removedIngredients,
       customizedItem.addedExtras,
-      customizedItem.notes
+      customizedItem.notes,
     );
 
     setState((prev) => {
@@ -76,7 +86,9 @@ export default function App() {
         return {
           ...prev,
           cart: prev.cart.map((item) =>
-            item.id === id ? { ...item, quantity: item.quantity + customizedItem.quantity } : item
+            item.id === id
+              ? { ...item, quantity: item.quantity + customizedItem.quantity }
+              : item,
           ),
           view: "cart",
           selectedItem: null,
@@ -96,7 +108,9 @@ export default function App() {
       ...prev,
       cart: prev.cart
         .map((item) =>
-          item.id === id ? { ...item, quantity: Math.max(0, item.quantity + delta) } : item
+          item.id === id
+            ? { ...item, quantity: Math.max(0, item.quantity + delta) }
+            : item,
         )
         .filter((item) => item.quantity > 0),
     }));
@@ -112,60 +126,65 @@ export default function App() {
                 <Home key="home" onStart={handleStart} />
               ) : (
                 <div className="flex flex-col h-full overflow-hidden">
-                <Header 
-                  onBack={handleBack}
-                  onHome={handleHome}
-                  onCartClick={() => setState({ ...state, view: 'cart' })}
-                  cartTotal={cartTotal}
-                  cartCount={cartCount}
-                  showCart={state.view !== 'cart' && state.view !== 'checkout'}
-                />
+                  <Header
+                    onBack={handleBack}
+                    onHome={handleHome}
+                    onCartClick={() => setState({ ...state, view: "cart" })}
+                    cartTotal={cartTotal}
+                    cartCount={cartCount}
+                    showCart={
+                      state.view !== "cart" && state.view !== "checkout"
+                    }
+                  />
 
-                {/* Main Content Area */}
-                <main className="flex-1 overflow-hidden flex relative">
-                  <AnimatePresence mode="wait">
-                    {state.view === "menu" && state.selectedCategoryId && (
-                      <Menu 
-                        key="menu"
-                        selectedCategoryId={state.selectedCategoryId}
-                        onSelectItem={handleSelectItem}
-                        onSelectCategory={handleSelectCategory}
-                      />
-                    )}
+                  {/* Main Content Area */}
+                  <main className="flex-1 overflow-hidden flex relative">
+                    <AnimatePresence mode="wait">
+                      {state.view === "menu" && state.selectedCategoryId && (
+                        <Menu
+                          key="menu"
+                          selectedCategoryId={state.selectedCategoryId}
+                          onSelectItem={handleSelectItem}
+                          onSelectCategory={handleSelectCategory}
+                        />
+                      )}
 
-                    {state.view === "customize" && state.selectedItem && (
-                      <Customize 
-                        key="customize"
-                        item={state.selectedItem} 
-                        onAddToCart={addToCart}
-                      />
-                    )}
+                      {state.view === "customize" && state.selectedItem && (
+                        <Customize
+                          key="customize"
+                          item={state.selectedItem}
+                          onAddToCart={addToCart}
+                        />
+                      )}
 
-                    {state.view === "cart" && (
-                      <Cart 
-                        key="cart"
-                        cart={state.cart}
-                        total={cartTotal}
-                        onUpdateQuantity={updateQuantity}
-                        onBack={handleBack}
-                        onCheckout={() => setState({...state, view: 'checkout'})}
-                        orderType={state.orderType}
-                      />
-                    )}
+                      {state.view === "cart" && (
+                        <Cart
+                          key="cart"
+                          cart={state.cart}
+                          total={cartTotal}
+                          onUpdateQuantity={updateQuantity}
+                          onBack={handleBack}
+                          onCheckout={() =>
+                            setState({ ...state, view: "checkout" })
+                          }
+                          orderType={state.orderType}
+                          onAddToCart={addToCart}
+                        />
+                      )}
 
-                    {state.view === "checkout" && (
-                      <CheckoutScreen 
-                        key="checkout"
-                        onHome={handleHome}
-                        cart={state.cart}
-                        total={cartTotal}
-                        orderType={state.orderType}
-                      />
-                    )}
-                  </AnimatePresence>
-                </main>
-              </div>
-            )}
+                      {state.view === "checkout" && (
+                        <CheckoutScreen
+                          key="checkout"
+                          onHome={handleHome}
+                          cart={state.cart}
+                          total={cartTotal}
+                          orderType={state.orderType}
+                        />
+                      )}
+                    </AnimatePresence>
+                  </main>
+                </div>
+              )}
             </AnimatePresence>
           </div>
         </div>

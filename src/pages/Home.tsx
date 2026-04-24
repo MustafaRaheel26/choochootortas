@@ -9,47 +9,55 @@ interface HomeProps {
 }
 
 const LANGUAGES = [
-  { code: 'US', country: 'us', name: 'English', id: 'en' },
-  { code: 'MX', country: 'mx', name: 'Español', id: 'es' },
+  { code: "US", country: "us", name: "English", id: "en" },
+  { code: "MX", country: "mx", name: "Español", id: "es" },
 ] as const;
 
 export const Home: React.FC<HomeProps> = ({ onStart }) => {
   const [isLangOpen, setIsLangOpen] = useState(false);
   const { language, setLanguage, t } = useLanguage();
-  
-  const currentLang = LANGUAGES.find(l => l.id === language) || LANGUAGES[0];
+
+  const currentLang = LANGUAGES.find((l) => l.id === language) || LANGUAGES[0];
 
   return (
-    <div className="h-full w-full flex flex-col text-white relative" style={{ background: '#000000' }}>
-      
+    <div
+      className="h-full w-full flex flex-col text-white relative"
+      style={{ background: "#000000" }}
+    >
       {/* Background Decor - behind everything */}
-      <div className="absolute inset-0 pointer-events-none opacity-[0.04] z-0" style={{ borderRadius: 'inherit', overflow: 'hidden' }}>
+      <div
+        className="absolute inset-0 pointer-events-none opacity-[0.04] z-0"
+        style={{ borderRadius: "inherit", overflow: "hidden" }}
+      >
         <Globe className="absolute -top-24 -left-24 w-[600px] h-[600px] text-white" />
       </div>
 
       {/* TOP BLACK SECTION */}
       <div className="relative flex-1 flex flex-col items-center pt-32 z-20">
-        
         {/* Language Selector */}
         <div className="absolute top-8 right-8">
           <div className="relative">
-            <button 
+            <button
               onClick={() => setIsLangOpen(!isLangOpen)}
               className="flex items-center gap-4 bg-[#111] border-2 border-white/20 rounded-2xl px-5 py-3.5 active:border-primary transition-all active:scale-95 shadow-xl"
             >
-              <img 
-                src={`https://flagcdn.com/w80/${currentLang.country}.png`} 
+              <img
+                src={`https://flagcdn.com/w80/${currentLang.country}.png`}
                 alt={currentLang.name}
                 className="w-8 h-auto rounded-sm border border-white/10"
                 referrerPolicy="no-referrer"
               />
-              <span className="text-sm font-black uppercase tracking-[0.2em]">{currentLang.code}</span>
-              <ChevronDown className={`w-5 h-5 transition-transform duration-300 ${isLangOpen ? 'rotate-180 text-primary' : 'text-white/40'}`} />
+              <span className="text-sm font-black uppercase tracking-[0.2em]">
+                {currentLang.code}
+              </span>
+              <ChevronDown
+                className={`w-5 h-5 transition-transform duration-300 ${isLangOpen ? "rotate-180 text-primary" : "text-white/40"}`}
+              />
             </button>
 
             <AnimatePresence>
               {isLangOpen && (
-                <motion.div 
+                <motion.div
                   initial={{ opacity: 0, y: 15, scale: 0.95 }}
                   animate={{ opacity: 1, y: 0, scale: 1 }}
                   exit={{ opacity: 0, y: 15, scale: 0.95 }}
@@ -65,15 +73,19 @@ export const Home: React.FC<HomeProps> = ({ onStart }) => {
                       className="w-full flex items-center justify-between px-4 py-4 rounded-2xl active:bg-white active:text-black transition-all duration-200 group mb-1 last:mb-0"
                     >
                       <div className="flex items-center gap-4">
-                        <img 
-                          src={`https://flagcdn.com/w80/${lang.country}.png`} 
+                        <img
+                          src={`https://flagcdn.com/w80/${lang.country}.png`}
                           alt={lang.name}
                           className="w-8 h-auto rounded-sm border border-white/10"
                           referrerPolicy="no-referrer"
                         />
                         <div className="flex flex-col items-start translate-y-[1px]">
-                          <span className="text-[10px] font-black uppercase tracking-widest opacity-50">{lang.code}</span>
-                          <span className="text-sm font-bold tracking-tight">{lang.name}</span>
+                          <span className="text-[10px] font-black uppercase tracking-widest opacity-50">
+                            {lang.code}
+                          </span>
+                          <span className="text-sm font-bold tracking-tight">
+                            {lang.name}
+                          </span>
                         </div>
                       </div>
                       {language === lang.id && (
@@ -88,23 +100,30 @@ export const Home: React.FC<HomeProps> = ({ onStart }) => {
         </div>
 
         {/* LOGO */}
-        <motion.div 
+        <motion.div
           initial={{ scale: 0.9, opacity: 0 }}
           animate={{ scale: 1, opacity: 1 }}
           className="flex flex-col items-center gap-6 mb-16"
         >
-          <div className="w-24 h-24 bg-[#111] rounded-3xl flex items-center justify-center border-2 border-primary shadow-[0_0_60px_rgba(30,176,30,0.1)]">
-            <Train className="w-14 h-14 text-primary stroke-[3]" />
+          <div className="w-40 h-40 bg-[#111] rounded-3xl flex items-center justify-center border-2 border-primary shadow-[0_0_60px_rgba(255,0,0,0.1)] overflow-hidden">
+            <img
+              src="/assets/logo.jpg"
+              alt="Choo Choo Tortas Logo"
+              className="w-full h-full object-cover rounded-3xl"
+            />
           </div>
           <span className="text-[40px] font-black tracking-tight text-white uppercase drop-shadow-2xl">
-            CHOOCHOO <span className="text-primary underline decoration-primary underline-offset-8">TORTAS</span>
+            CHOO CHOO{" "}
+            <span className="text-primary underline decoration-primary underline-offset-8">
+              TORTAS
+            </span>
           </span>
         </motion.div>
 
         {/* HEADLINE */}
         <div className="text-center px-10">
           <h1 className="text-[40px] font-bold leading-[1.1] max-w-[500px] mx-auto text-white uppercase tracking-tight">
-            {t('where_eating')}
+            {t("where_eating")}
           </h1>
         </div>
       </div>
@@ -116,15 +135,12 @@ export const Home: React.FC<HomeProps> = ({ onStart }) => {
           preserveAspectRatio="none"
           className="w-full h-[220px]"
         >
-          <path
-            fill="#1eb01e"
-            d="M0,120 Q720,320 1440,120 V320 H0 Z"
-          />
+          <path fill="#ff0000" d="M0,120 Q720,320 1440,120 V320 H0 Z" />
         </svg>
       </div>
 
       {/* BOTTOM GREEN SECTION */}
-      <div className="h-[45%] w-full bg-[#1eb01e] flex items-center justify-center pb-12 z-10">
+      <div className="h-[45%] w-full bg-[#ff0000] flex items-center justify-center pb-12 z-10">
         <div className="flex gap-16">
           <motion.button
             whileTap={{ scale: 0.95 }}
@@ -135,7 +151,7 @@ export const Home: React.FC<HomeProps> = ({ onStart }) => {
               <Utensils className="w-10 h-10 text-white" />
             </div>
             <span className="text-[16px] font-black text-white uppercase tracking-widest">
-              {t('eat_in')}
+              {t("eat_in")}
             </span>
           </motion.button>
 
@@ -148,12 +164,11 @@ export const Home: React.FC<HomeProps> = ({ onStart }) => {
               <ShoppingBag className="w-10 h-10 text-white" />
             </div>
             <span className="text-[16px] font-black text-white uppercase tracking-widest">
-              {t('take_out')}
+              {t("take_out")}
             </span>
           </motion.button>
         </div>
       </div>
-
     </div>
   );
 };
