@@ -1,10 +1,10 @@
-import React, { useMemo } from "react";
+import React, { useMemo, useState, useEffect } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { MenuItem, CATEGORIES, MENU_ITEMS } from "../data/menu";
 import { formatCurrency } from "../utils/cartUtils";
 import { ChevronRight } from "lucide-react";
-
 import { useLanguage } from "../context/LanguageContext";
+import { fetchMenu, fetchCategories, MenuItem as ApiMenuItem, Category as ApiCategory } from "../services/api";
 
 interface MenuProps {
   selectedCategoryId: string;
@@ -13,36 +13,81 @@ interface MenuProps {
 }
 
 /**
- * Backend Data Fetcher (Mock Implementation for now)
- * This is where you would connect to a real API like:
- * fetch(`${process.env.API_URL}/menu`).then(...)
+ * Backend Data Fetcher - Now connected to real backend API
  */
-const fetchMenuData = async () => {
-    // Simulated backend call logic with proper structure
-    try {
-        // const response = await fetch('/api/menu');
-        // const data = await response.json();
-        // return data;
-        return { categories: CATEGORIES, items: MENU_ITEMS };
-    } catch (error) {
-        console.error("Backend connection failed:", error);
-        return null;
-    }
-}
+const useBackendData = () => {
+  const [categories, setCategories] = useState(CATEGORIES);
+  const [menuItems, setMenuItems] = useState(MENU_ITEMS);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const loadData = async () => {
+      try {
+        setLoading(true);
+        // Fetch both categories and menu items from backend
+        const [apiCategories, apiMenuItems] = await Promise.all([
+          fetchCategories(),
+          fetchMenu()
+        ]);
+
+        // Transform backend categories to match frontend Category type
+        // Now using the backend-provided 'image' field directly
+        const transformedCategories = apiCategories.map((cat: ApiCategory) => ({
+          id: cat.id,
+          name: cat.name,
+          icon: "",
+          image: cat.image || "https://images.unsplash.com/photo-1534352956036-cd81e27dd615?w=600&h=400&fit=crop", // fallback if backend missing
+        }));
+
+        // Transform backend menu items to match frontend MenuItem type
+        const transformedMenuItems = apiMenuItems.map((item: ApiMenuItem) => ({
+          id: item.id,
+          name: item.itemName,
+          description: item.description,
+          price: item.price,
+          image: item.image || "https://images.unsplash.com/photo-1626700051175-6818013e1d4f?w=600&h=400&fit=crop",
+          category: item.categoryId,
+          ingredients: item.ingredients,
+          extras: item.extras,
+        }));
+
+        setCategories(transformedCategories);
+        setMenuItems(transformedMenuItems);
+        setError(null);
+      } catch (err) {
+        console.error("Failed to load backend data:", err);
+        setError("Failed to load menu. Using local data.");
+        // Keep local data as fallback
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadData();
+  }, []);
+
+  return { categories, menuItems, loading, error };
+};
+
+// Helper removed: getCategoryImage is no longer needed – backend provides the image.
 
 export const Menu: React.FC<MenuProps> = ({
   selectedCategoryId,
   onSelectItem,
   onSelectCategory,
 }) => {
+  // Use backend data instead of local static data
+  const { categories, menuItems, loading, error } = useBackendData();
+
   // Items are filtered based on selection
   const items = useMemo(() => {
-    return MENU_ITEMS.filter((item) => item.category === selectedCategoryId);
-  }, [selectedCategoryId]);
+    return menuItems.filter((item) => item.category === selectedCategoryId);
+  }, [menuItems, selectedCategoryId]);
 
   const activeCategory = useMemo(() => 
-    CATEGORIES.find((c) => c.id === selectedCategoryId), 
-  [selectedCategoryId]);
+    categories.find((c) => c.id === selectedCategoryId), 
+  [categories, selectedCategoryId]);
 
   const container = {
     hidden: { opacity: 0 },
@@ -59,6 +104,18 @@ export const Menu: React.FC<MenuProps> = ({
 
   const { t } = useLanguage();
 
+  // Show loading state
+  if (loading) {
+    return (
+      <div className="flex-1 flex items-center justify-center bg-black">
+        <div className="text-center">
+          <div className="w-16 h-16 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="text-white/60">Loading menu...</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="flex-1 flex overflow-hidden bg-black h-full w-full">
       {/* LEFT SIDE: Category Sidebar - 25% Width */}
@@ -69,7 +126,7 @@ export const Menu: React.FC<MenuProps> = ({
         </div>
         
         <div className="flex-1 overflow-y-auto px-4 space-y-4 custom-scrollbar">
-          {CATEGORIES.map((cat) => {
+          {categories.map((cat) => {
             const isActive = selectedCategoryId === cat.id;
             return (
               <motion.button
@@ -88,6 +145,7 @@ export const Menu: React.FC<MenuProps> = ({
                     src={cat.image}
                     alt={cat.name}
                     className={`w-full h-full object-cover transition-transform duration-700 ${isActive ? 'scale-110' : 'opacity-90 active:opacity-100'}`}
+                    referrerPolicy="no-referrer"
                   />
                 </div>
                 <span className={`text-[13px] font-black uppercase tracking-widest text-center px-2 pb-2 ${isActive ? 'text-primary' : 'text-white/40'}`}>

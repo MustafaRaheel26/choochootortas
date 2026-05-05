@@ -12,6 +12,7 @@ import {
   Loader2,
   Home as HomeIcon,
 } from "lucide-react";
+import { createOrder, getNextOrderNumber, NextOrderNumber, fetchTaxRate } from "../services/api";
 
 interface CheckoutScreenProps {
   onHome: () => void;
@@ -30,23 +31,98 @@ export const CheckoutScreen: React.FC<CheckoutScreenProps> = ({
 }) => {
   const { t } = useLanguage();
   const [paymentState, setPaymentState] = useState<PaymentState>("idle");
-  const tax = total * 0.08;
+  const [orderError, setOrderError] = useState<string | null>(null);
+  const [reservedOrder, setReservedOrder] = useState<NextOrderNumber | null>(null);
+  const [isReserving, setIsReserving] = useState(true);
+  const [taxRate, setTaxRate] = useState<number>(8.25);
+  const [currencySymbol, setCurrencySymbol] = useState<string>("$");
+  
+  const tax = total * (taxRate / 100);
   const grandTotal = total + tax;
-  const orderNumber = "247";
 
+  // Fetch tax rate from backend
   useEffect(() => {
-    let timeout: any;
-    if (paymentState === "processing") {
-      timeout = setTimeout(() => {
-        setPaymentState("success");
-      }, 4000);
-    } else if (paymentState === "success") {
-      timeout = setTimeout(() => {
-        onHome();
-      }, 6000);
+    const loadTaxRate = async () => {
+      try {
+        const taxSettings = await fetchTaxRate();
+        setTaxRate(taxSettings.taxRate);
+        setCurrencySymbol(taxSettings.currencySymbol);
+      } catch (error) {
+        console.error('Failed to fetch tax rate:', error);
+      }
+    };
+    loadTaxRate();
+  }, []);
+
+  // Reserve an order number when the component loads (before showing slip)
+  useEffect(() => {
+    const reserveNumber = async () => {
+      try {
+        const nextNumber = await getNextOrderNumber();
+        setReservedOrder(nextNumber);
+      } catch (error) {
+        console.error('Failed to reserve order number:', error);
+        const tempNumber = Date.now().toString().slice(-3).padStart(3, '0');
+        setReservedOrder({
+          orderNumber: tempNumber,
+          orderId: `order_${tempNumber}`
+        });
+      } finally {
+        setIsReserving(false);
+      }
+    };
+    
+    reserveNumber();
+  }, []);
+
+  if (isReserving) {
+    return (
+      <div className="absolute inset-0 bg-black z-[200] flex flex-col items-center justify-center p-12 text-center">
+        <motion.div
+          initial={{ scale: 0.8, opacity: 0 }}
+          animate={{ scale: 1, opacity: 1 }}
+          className="bg-[#111] border-2 border-primary/20 rounded-[40px] p-16 max-w-xl w-full"
+        >
+          <div className="mb-8 relative flex justify-center">
+            <div className="w-16 h-16 border-4 border-primary border-t-transparent rounded-full animate-spin" />
+          </div>
+          <p className="text-white/60 text-lg">Preparing your order...</p>
+        </motion.div>
+      </div>
+    );
+  }
+
+  const handlePayment = async () => {
+    if (!reservedOrder) {
+      setOrderError('Order reservation failed. Please try again.');
+      return;
     }
-    return () => clearTimeout(timeout);
-  }, [paymentState, onHome]);
+    
+    setPaymentState("processing");
+    setOrderError(null);
+    
+    try {
+      const orderItems = cart.map(item => ({
+        name: item.menuItem.name,
+        quantity: item.quantity,
+        price: item.totalPrice,
+        removed: item.removedIngredients.map(ing => ing),
+        extras: item.addedExtras.map(extra => extra.name),
+      }));
+      
+      await createOrder({
+        items: orderItems,
+        orderType: orderType === 'eat-in' ? 'eat-in' : 'take-out',
+      });
+      
+      setPaymentState("success");
+      
+    } catch (error) {
+      console.error('Failed to create order:', error);
+      setOrderError('Failed to place order. Please try again.');
+      setPaymentState("idle");
+    }
+  };
 
   if (paymentState === "processing") {
     return (
@@ -69,6 +145,9 @@ export const CheckoutScreen: React.FC<CheckoutScreenProps> = ({
             Please follow the instructions on the card reader to complete your
             payment.
           </p>
+          {orderError && (
+            <p className="mt-4 text-red-500 text-sm">{orderError}</p>
+          )}
         </motion.div>
       </div>
     );
@@ -92,7 +171,7 @@ export const CheckoutScreen: React.FC<CheckoutScreenProps> = ({
           </h2>
           <div className="space-y-4 mb-12">
             <p className="text-2xl font-bold text-primary uppercase tracking-widest italic">
-              Order #{orderNumber}
+              Order #{reservedOrder?.orderNumber || '---'}
             </p>
             <p className="text-lg text-white/50 font-bold uppercase tracking-widest leading-none">
               Your order is being prepared
@@ -124,7 +203,6 @@ export const CheckoutScreen: React.FC<CheckoutScreenProps> = ({
 
   return (
     <div className="absolute inset-0 bg-[#050505] flex flex-col z-[100]">
-      {/* Scrollable Content Area */}
       <div className="flex-1 overflow-y-auto custom-scrollbar p-6 lg:p-12 pb-40">
         <div className="max-w-2xl mx-auto">
           <motion.div
@@ -132,7 +210,6 @@ export const CheckoutScreen: React.FC<CheckoutScreenProps> = ({
             animate={{ opacity: 1, y: 0 }}
             className="bg-white text-black rounded-[40px] shadow-[0_40px_120px_rgba(0,0,0,0.6)] overflow-hidden border-2 border-primary/20 flex flex-col"
           >
-            {/* Invoice Header */}
             <div className="p-8 lg:p-12 text-center border-b-[3px] border-dotted border-black/20">
               <h1 className="text-3xl lg:text-4xl font-black uppercase tracking-tighter mb-1">
                 choo choo TORTAS
@@ -143,10 +220,10 @@ export const CheckoutScreen: React.FC<CheckoutScreenProps> = ({
 
               <div className="bg-black text-white py-4 px-8 inline-block rounded-sm mb-6">
                 <p className="text-[8px] font-black uppercase tracking-[0.5em] mb-1 opacity-50">
-                  Transaction ID
+                  Order ID
                 </p>
                 <h2 className="text-6xl lg:text-7xl font-black tracking-tighter leading-none">
-                  #{orderNumber}
+                  #{reservedOrder?.orderNumber || '---'}
                 </h2>
               </div>
 
@@ -175,7 +252,6 @@ export const CheckoutScreen: React.FC<CheckoutScreenProps> = ({
               </div>
             </div>
 
-            {/* Invoice Items */}
             <div className="p-8 lg:p-12">
               <div className="space-y-4 mb-10">
                 <div className="flex justify-between text-[10px] font-black uppercase tracking-widest text-black/30 border-b border-black/10 pb-2 mb-4">
@@ -211,14 +287,13 @@ export const CheckoutScreen: React.FC<CheckoutScreenProps> = ({
                 ))}
               </div>
 
-              {/* Totals Section */}
               <div className="border-t-[3px] border-black pt-6 space-y-2">
                 <div className="flex justify-between items-center text-[11px] font-bold uppercase tracking-widest text-black/40">
                   <span>Subtotal</span>
                   <span>{formatCurrency(total)}</span>
                 </div>
                 <div className="flex justify-between items-center text-[11px] font-bold uppercase tracking-widest text-black/40">
-                  <span>Tax & Surcharge</span>
+                  <span>Tax ({taxRate}%)</span>
                   <span>{formatCurrency(tax)}</span>
                 </div>
                 <div className="flex justify-between items-center pt-4 border-t border-black/5">
@@ -246,14 +321,13 @@ export const CheckoutScreen: React.FC<CheckoutScreenProps> = ({
         </div>
       </div>
 
-      {/* STICKY BOTTOM BUTTON PANEL */}
       <div className="absolute bottom-0 inset-x-0 bg-black/80 backdrop-blur-xl border-t border-primary/20 p-8 lg:p-12 z-[150] shadow-[0_-20px_60px_rgba(0,0,0,0.8)]">
         <div className="max-w-2xl mx-auto flex flex-col gap-4">
           <Button
             variant="primary"
             size="xl"
             className="w-full h-24 rounded-[32px] text-3xl font-black uppercase tracking-widest shadow-[0_20px_60px_rgba(30,176,30,0.4)] active:scale-[0.98] transition-all"
-            onClick={() => setPaymentState("processing")}
+            onClick={handlePayment}
           >
             CONFIRM & PAY
           </Button>
@@ -268,4 +342,4 @@ export const CheckoutScreen: React.FC<CheckoutScreenProps> = ({
       </div>
     </div>
   );
-};
+}

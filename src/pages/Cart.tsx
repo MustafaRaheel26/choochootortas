@@ -1,10 +1,11 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 import { motion } from "motion/react";
 import { CartItem } from "../types";
 import { ShoppingBag, Plus, Trash2, Minus } from "lucide-react";
 import { formatCurrency } from "../utils/cartUtils";
 import { Button } from "../components/Button";
 import { useLanguage } from "../context/LanguageContext";
+import { fetchTaxRate } from "../services/api";
 
 const DESSERTS = [
   {
@@ -47,7 +48,26 @@ export const Cart: React.FC<CartProps> = ({
   onAddToCart,
 }) => {
   const { t } = useLanguage();
-  const tax = total * 0.08;
+  const [taxRate, setTaxRate] = useState<number>(8.25); // default fallback
+  const [loadingTax, setLoadingTax] = useState(true);
+
+  // Fetch tax rate from backend
+  useEffect(() => {
+    const loadTax = async () => {
+      try {
+        const taxSettings = await fetchTaxRate();
+        setTaxRate(taxSettings.taxRate);
+      } catch (error) {
+        console.error("Failed to fetch tax rate in Cart:", error);
+        // keep default 8.25
+      } finally {
+        setLoadingTax(false);
+      }
+    };
+    loadTax();
+  }, []);
+
+  const tax = total * (taxRate / 100);
   const grandTotal = total + tax;
 
   if (cart.length === 0) {
@@ -271,7 +291,7 @@ export const Cart: React.FC<CartProps> = ({
               </span>
             </div>
             <div className="flex justify-between items-center text-muted font-black uppercase tracking-[0.3em] opacity-40 text-xs">
-              <span>{t("tax")}</span>
+              <span>{t("tax")} ({taxRate}%)</span>
               <span className="text-white text-lg">{formatCurrency(tax)}</span>
             </div>
             <div className="pt-4 border-t border-white/5 flex justify-between items-center">
