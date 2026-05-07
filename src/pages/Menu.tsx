@@ -17,7 +17,7 @@ interface MenuProps {
  */
 const useBackendData = () => {
   const [categories, setCategories] = useState(CATEGORIES);
-  const [menuItems, setMenuItems] = useState(MENU_ITEMS);
+  const [menuItems, setMenuItems] useState(MENU_ITEMS);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -176,7 +176,7 @@ export const Menu: React.FC<MenuProps> = ({
                   {activeCategory.name}
                 </h1>
                 <p className="text-[9px] font-bold text-white/40 uppercase tracking-[0.4em]">
-                  {items.length} {items.length === 1 ? t('option_available') : t('options_available')}
+                  {items.length} {items.length === 1 ? 'Option Available' : 'Options Available'}
                 </p>
               </>
             ) : (
@@ -195,16 +195,18 @@ export const Menu: React.FC<MenuProps> = ({
         <div className="flex-1 overflow-y-auto px-10 pt-10 pb-32 custom-scrollbar z-10">
           {items.length === 0 ? (
             // Show this message whenever there are no items to display
-            // (whether no category selected OR category is empty)
             <div className="flex flex-col items-center justify-center h-full text-center">
               <div className="w-32 h-32 rounded-full bg-white/5 flex items-center justify-center mb-6">
                 <ChevronRight className="w-16 h-16 text-white/20" />
               </div>
-              <p className="text-2xl font-bold text-white/40 uppercase tracking-widest">
-                Select a Category
+              <p className="text-2xl font-bold text-white/40 uppercase tracking-widest mb-4">
+                SELECT ITEMS FROM LEFT
               </p>
-              <p className="text-sm text-white/20 mt-3 max-w-md">
-                Please select any category from the left sidebar, then items will appear here
+              <p className="text-white/30 text-lg font-medium">
+                Please select a category first from the left menu
+              </p>
+              <p className="text-white/20 text-sm mt-4">
+                Then items will appear here
               </p>
             </div>
           ) : (
@@ -225,7 +227,7 @@ export const Menu: React.FC<MenuProps> = ({
                     className="bg-[#111] border-2 border-white/10 rounded-3xl flex flex-col p-2 cursor-pointer group active:border-primary transition-all duration-300 shadow-xl h-full"
                     onClick={() => onSelectItem(item)}
                   >
-                    {/* Item Visual - Max Size with Minimal Padding */}
+                    {/* Item Visual */}
                     <div className="aspect-[4/3] w-full shrink-0 overflow-hidden rounded-2xl mb-4 relative bg-black/50 border border-white/5">
                       <img
                         src={item.image}
@@ -235,7 +237,7 @@ export const Menu: React.FC<MenuProps> = ({
                       />
                     </div>
 
-                    {/* Pricing & Identity - Centered & Clean */}
+                    {/* Pricing & Identity */}
                     <div className="flex flex-col items-center text-center px-2 pb-4 mt-auto">
                       <h3 className="text-lg font-black text-white uppercase tracking-wider leading-tight mb-2 active:text-primary transition-colors duration-300">
                         {item.name}
