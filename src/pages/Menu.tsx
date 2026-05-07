@@ -88,7 +88,7 @@ export const Menu: React.FC<MenuProps> = ({
   // Use backend data instead of local static data
   const { categories, menuItems, loading, error } = useBackendData();
 
-  // Items are filtered based on selection
+  // Items are filtered based on selection (returns empty array if no category selected)
   const items = useMemo(() => {
     if (!selectedCategoryId) return [];
     return menuItems.filter((item) => item.category === selectedCategoryId);
@@ -182,7 +182,7 @@ export const Menu: React.FC<MenuProps> = ({
             ) : (
               <>
                 <h1 className="text-4xl font-black uppercase tracking-tight text-white/20 leading-none">
-                  Welcome!
+                  Choo Choo Tortas
                 </h1>
                 <p className="text-[9px] font-bold text-white/20 uppercase tracking-[0.4em]">
                   Select a category to begin
@@ -194,33 +194,33 @@ export const Menu: React.FC<MenuProps> = ({
 
         <div className="flex-1 overflow-y-auto px-10 pt-10 pb-32 custom-scrollbar z-10">
           {!selectedCategoryId ? (
-            // Case 1: No category selected
+            // Case: No category selected - Show prompt to select
             <div className="flex flex-col items-center justify-center h-full text-center">
               <div className="w-32 h-32 rounded-full bg-white/5 flex items-center justify-center mb-6">
                 <ChevronRight className="w-16 h-16 text-white/20" />
               </div>
               <p className="text-2xl font-bold text-white/40 uppercase tracking-widest">
-                Choose a Category
+                Select a Category
               </p>
               <p className="text-sm text-white/20 mt-3 max-w-md">
-                Select any category from the left sidebar to view our delicious offerings
+                Please select a category from the left sidebar to view our delicious items
               </p>
             </div>
           ) : items.length === 0 ? (
-            // Case 2: Category selected but has no items
+            // Case: Category selected but has no items
             <div className="flex flex-col items-center justify-center h-full text-center">
               <div className="w-32 h-32 rounded-full bg-white/5 flex items-center justify-center mb-6">
                 <span className="text-6xl">🍽️</span>
               </div>
               <p className="text-2xl font-bold text-white/40 uppercase tracking-widest">
-                Coming Soon!
+                No Items Yet
               </p>
               <p className="text-sm text-white/20 mt-3 max-w-md">
-                This category will have delicious options shortly
+                This category doesn't have any items at the moment
               </p>
             </div>
           ) : (
-            // Case 3: Category selected with items - show them
+            // Case: Category selected with items - Show them
             <motion.div 
               variants={container}
               initial="hidden"
