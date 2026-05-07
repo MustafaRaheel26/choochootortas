@@ -90,6 +90,7 @@ export const Menu: React.FC<MenuProps> = ({
 
   // Items are filtered based on selection
   const items = useMemo(() => {
+    if (!selectedCategoryId) return [];
     return menuItems.filter((item) => item.category === selectedCategoryId);
   }, [menuItems, selectedCategoryId]);
 
@@ -181,10 +182,10 @@ export const Menu: React.FC<MenuProps> = ({
             ) : (
               <>
                 <h1 className="text-4xl font-black uppercase tracking-tight text-white/20 leading-none">
-                  Select a Category
+                  Welcome!
                 </h1>
                 <p className="text-[9px] font-bold text-white/20 uppercase tracking-[0.4em]">
-                  Choose from the left menu to see items
+                  Select a category to begin
                 </p>
               </>
             )}
@@ -193,26 +194,33 @@ export const Menu: React.FC<MenuProps> = ({
 
         <div className="flex-1 overflow-y-auto px-10 pt-10 pb-32 custom-scrollbar z-10">
           {!selectedCategoryId ? (
+            // Case 1: No category selected
             <div className="flex flex-col items-center justify-center h-full text-center">
               <div className="w-32 h-32 rounded-full bg-white/5 flex items-center justify-center mb-6">
                 <ChevronRight className="w-16 h-16 text-white/20" />
               </div>
-              <p className="text-xl font-bold text-white/40 uppercase tracking-widest">
-                Select a category to view items
+              <p className="text-2xl font-bold text-white/40 uppercase tracking-widest">
+                Choose a Category
               </p>
-              <p className="text-sm text-white/20 mt-2">Click on any category from the left sidebar</p>
+              <p className="text-sm text-white/20 mt-3 max-w-md">
+                Select any category from the left sidebar to view our delicious offerings
+              </p>
             </div>
           ) : items.length === 0 ? (
+            // Case 2: Category selected but has no items
             <div className="flex flex-col items-center justify-center h-full text-center">
               <div className="w-32 h-32 rounded-full bg-white/5 flex items-center justify-center mb-6">
                 <span className="text-6xl">🍽️</span>
               </div>
-              <p className="text-xl font-bold text-white/40 uppercase tracking-widest">
-                No items yet
+              <p className="text-2xl font-bold text-white/40 uppercase tracking-widest">
+                Coming Soon!
               </p>
-              <p className="text-sm text-white/20 mt-2">Check back soon for delicious options</p>
+              <p className="text-sm text-white/20 mt-3 max-w-md">
+                This category will have delicious options shortly
+              </p>
             </div>
           ) : (
+            // Case 3: Category selected with items - show them
             <motion.div 
               variants={container}
               initial="hidden"
