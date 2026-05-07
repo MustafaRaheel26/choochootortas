@@ -31,13 +31,23 @@ const useBackendData = () => {
           fetchMenu()
         ]);
 
+        // Build a map: categoryId -> first menu item image
+        const categoryImageMap = new Map();
+        for (const item of apiMenuItems) {
+          if (!categoryImageMap.has(item.categoryId) && item.image && item.image.trim() !== '') {
+            categoryImageMap.set(item.categoryId, item.image);
+          }
+        }
+
+        const defaultImage = "https://images.unsplash.com/photo-1534352956036-cd81e27dd615?w=600&h=400&fit=crop";
+
         // Transform backend categories to match frontend Category type
-        // Now using the backend-provided 'image' field directly
+        // Priority: 1) Menu item image, 2) Default placeholder
         const transformedCategories = apiCategories.map((cat: ApiCategory) => ({
           id: cat.id,
           name: cat.name,
           icon: "",
-          image: cat.image || "https://images.unsplash.com/photo-1534352956036-cd81e27dd615?w=600&h=400&fit=crop", // fallback if backend missing
+          image: categoryImageMap.get(cat.id) || defaultImage,
         }));
 
         // Transform backend menu items to match frontend MenuItem type
@@ -46,7 +56,7 @@ const useBackendData = () => {
           name: item.itemName,
           description: item.description,
           price: item.price,
-          image: item.image || "https://images.unsplash.com/photo-1626700051175-6818013e1d4f?w=600&h=400&fit=crop",
+          image: item.image || defaultImage,
           category: item.categoryId,
           ingredients: item.ingredients,
           extras: item.extras,
@@ -69,8 +79,6 @@ const useBackendData = () => {
 
   return { categories, menuItems, loading, error };
 };
-
-// Helper removed: getCategoryImage is no longer needed – backend provides the image.
 
 export const Menu: React.FC<MenuProps> = ({
   selectedCategoryId,
@@ -161,57 +169,92 @@ export const Menu: React.FC<MenuProps> = ({
       <main className="w-[75%] flex flex-col h-full bg-[#050505] relative overflow-hidden">
         <div className="px-10 py-10 flex items-end justify-between z-10 border-b border-white/5">
           <div className="space-y-1">
-            <h1 className="text-4xl font-black uppercase tracking-tight text-white leading-none">
-              {activeCategory?.name}
-            </h1>
-            <p className="text-[9px] font-bold text-white/40 uppercase tracking-[0.4em]">
-               {items.length} {t('options_available')}
-            </p>
+            {activeCategory ? (
+              <>
+                <h1 className="text-4xl font-black uppercase tracking-tight text-white leading-none">
+                  {activeCategory.name}
+                </h1>
+                <p className="text-[9px] font-bold text-white/40 uppercase tracking-[0.4em]">
+                  {items.length} {items.length === 1 ? t('option_available') : t('options_available')}
+                </p>
+              </>
+            ) : (
+              <>
+                <h1 className="text-4xl font-black uppercase tracking-tight text-white/20 leading-none">
+                  Select a Category
+                </h1>
+                <p className="text-[9px] font-bold text-white/20 uppercase tracking-[0.4em]">
+                  Choose from the left menu to see items
+                </p>
+              </>
+            )}
           </div>
         </div>
 
         <div className="flex-1 overflow-y-auto px-10 pt-10 pb-32 custom-scrollbar z-10">
-          <motion.div 
-            variants={container}
-            initial="hidden"
-            animate="show"
-            key={selectedCategoryId}
-            className="grid grid-cols-3 gap-8"
-          >
-            <AnimatePresence mode="popLayout">
-              {items.map((item) => (
-                <motion.div
-                  key={item.id}
-                  variants={itemAnim}
-                  whileTap={{ scale: 0.98 }}
-                  className="bg-[#111] border-2 border-white/10 rounded-3xl flex flex-col p-2 cursor-pointer group active:border-primary transition-all duration-300 shadow-xl h-full"
-                  onClick={() => onSelectItem(item)}
-                >
-                  {/* Item Visual - Max Size with Minimal Padding */}
-                  <div className="aspect-[4/3] w-full shrink-0 overflow-hidden rounded-2xl mb-4 relative bg-black/50 border border-white/5">
-                    <img
-                      src={item.image}
-                      alt={item.name}
-                      className="w-full h-full object-cover active:scale-105 transition-transform duration-[1.2s] ease-out"
-                      referrerPolicy="no-referrer"
-                    />
-                  </div>
-
-                  {/* Pricing & Identity - Centered & Clean */}
-                  <div className="flex flex-col items-center text-center px-2 pb-4 mt-auto">
-                    <h3 className="text-lg font-black text-white uppercase tracking-wider leading-tight mb-2 active:text-primary transition-colors duration-300">
-                      {item.name}
-                    </h3>
-                    <div className="space-y-0.5">
-                      <span className="text-2xl font-black text-primary">
-                        {formatCurrency(item.price)}
-                      </span>
+          {!selectedCategoryId ? (
+            <div className="flex flex-col items-center justify-center h-full text-center">
+              <div className="w-32 h-32 rounded-full bg-white/5 flex items-center justify-center mb-6">
+                <ChevronRight className="w-16 h-16 text-white/20" />
+              </div>
+              <p className="text-xl font-bold text-white/40 uppercase tracking-widest">
+                Select a category to view items
+              </p>
+              <p className="text-sm text-white/20 mt-2">Click on any category from the left sidebar</p>
+            </div>
+          ) : items.length === 0 ? (
+            <div className="flex flex-col items-center justify-center h-full text-center">
+              <div className="w-32 h-32 rounded-full bg-white/5 flex items-center justify-center mb-6">
+                <span className="text-6xl">🍽️</span>
+              </div>
+              <p className="text-xl font-bold text-white/40 uppercase tracking-widest">
+                No items yet
+              </p>
+              <p className="text-sm text-white/20 mt-2">Check back soon for delicious options</p>
+            </div>
+          ) : (
+            <motion.div 
+              variants={container}
+              initial="hidden"
+              animate="show"
+              key={selectedCategoryId}
+              className="grid grid-cols-3 gap-8"
+            >
+              <AnimatePresence mode="popLayout">
+                {items.map((item) => (
+                  <motion.div
+                    key={item.id}
+                    variants={itemAnim}
+                    whileTap={{ scale: 0.98 }}
+                    className="bg-[#111] border-2 border-white/10 rounded-3xl flex flex-col p-2 cursor-pointer group active:border-primary transition-all duration-300 shadow-xl h-full"
+                    onClick={() => onSelectItem(item)}
+                  >
+                    {/* Item Visual - Max Size with Minimal Padding */}
+                    <div className="aspect-[4/3] w-full shrink-0 overflow-hidden rounded-2xl mb-4 relative bg-black/50 border border-white/5">
+                      <img
+                        src={item.image}
+                        alt={item.name}
+                        className="w-full h-full object-cover active:scale-105 transition-transform duration-[1.2s] ease-out"
+                        referrerPolicy="no-referrer"
+                      />
                     </div>
-                  </div>
-                </motion.div>
-              ))}
-            </AnimatePresence>
-          </motion.div>
+
+                    {/* Pricing & Identity - Centered & Clean */}
+                    <div className="flex flex-col items-center text-center px-2 pb-4 mt-auto">
+                      <h3 className="text-lg font-black text-white uppercase tracking-wider leading-tight mb-2 active:text-primary transition-colors duration-300">
+                        {item.name}
+                      </h3>
+                      <div className="space-y-0.5">
+                        <span className="text-2xl font-black text-primary">
+                          {formatCurrency(item.price)}
+                        </span>
+                      </div>
+                    </div>
+                  </motion.div>
+                ))}
+              </AnimatePresence>
+            </motion.div>
+          )}
         </div>
       </main>
     </div>
