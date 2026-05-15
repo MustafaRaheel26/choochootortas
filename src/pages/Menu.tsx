@@ -17,7 +17,7 @@ interface MenuProps {
  */
 const useBackendData = () => {
   const [categories, setCategories] = useState(CATEGORIES);
-  const [menuItems, setMenuItems] useState(MENU_ITEMS);
+  const [menuItems, setMenuItems] = useState(MENU_ITEMS);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
