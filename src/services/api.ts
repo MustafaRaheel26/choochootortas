@@ -102,6 +102,8 @@ export interface OrderItem {
 export interface CreateOrderRequest {
   items: OrderItem[];
   orderType: "eat-in" | "take-out";
+  notes?: string;
+  paymentSessionId?: string; // Added: Links order to payment session
 }
 
 export interface CreateOrderResponse {
@@ -113,9 +115,11 @@ export interface CreateOrderResponse {
   totalPrice: number;
   tax: number;
   subtotal: number;
+  paymentSessionId?: string; // Added: Returns the payment session ID
+  paymentTransactionId?: string; // Added: Returns the transaction ID
 }
 
-// Create a new order (checkout)
+// Create a new order (checkout) - Now requires payment approval
 export async function createOrder(
   orderData: CreateOrderRequest,
 ): Promise<CreateOrderResponse> {
@@ -124,4 +128,109 @@ export async function createOrder(
     body: JSON.stringify(orderData),
   });
   return response.data;
+}
+
+// ==================== PAYMENT API ====================
+
+export interface InitiatePaymentRequest {
+  amount: number;
+  orderData: {
+    items: OrderItem[];
+    orderType: "eat-in" | "take-out";
+    orderNumber: string;
+  };
+}
+
+export interface InitiatePaymentResponse {
+  success: boolean;
+  sessionId: string;
+  status: string;
+  expiresAt: string;
+  message: string;
+}
+
+export interface PaymentStatusResponse {
+  success: boolean;
+  sessionId: string;
+  status: string;
+  isComplete: boolean;
+  amount: number;
+  transactionId?: string;
+  errorMessage?: string;
+  expiresAt: string;
+  completedAt?: string;
+}
+
+// Initiate a payment session
+export async function initiatePayment(
+  paymentData: InitiatePaymentRequest,
+): Promise<InitiatePaymentResponse> {
+  const response = await apiCall<InitiatePaymentResponse>("/payment/initiate", {
+    method: "POST",
+    body: JSON.stringify(paymentData),
+  });
+  return response;
+}
+
+// Check payment status (polling)
+export async function getPaymentStatus(
+  sessionId: string,
+): Promise<PaymentStatusResponse> {
+  const response = await apiCall<PaymentStatusResponse>(
+    `/payment/status/${sessionId}`,
+  );
+  return response;
+}
+
+// Cancel a payment session
+export async function cancelPayment(
+  sessionId: string,
+): Promise<{ success: boolean }> {
+  const response = await apiCall<{ success: boolean }>(
+    `/payment/cancel/${sessionId}`,
+    { method: "POST" },
+  );
+  return response;
+}
+
+// ==================== TEST PAYMENT ENDPOINTS ====================
+
+// Test: Simulate approved payment
+export async function testApprovePayment(amount: number, orderData: any) {
+  const response = await apiCall("/payment/test/approve", {
+    method: "POST",
+    body: JSON.stringify({ amount, orderData }),
+  });
+  return response;
+}
+
+// Test: Simulate declined payment
+export async function testDeclinePayment(amount: number, orderData: any) {
+  const response = await apiCall("/payment/test/decline", {
+    method: "POST",
+    body: JSON.stringify({ amount, orderData }),
+  });
+  return response;
+}
+
+// Test: Simulate payment timeout
+export async function testTimeoutPayment(amount: number, orderData: any) {
+  const response = await apiCall("/payment/test/timeout", {
+    method: "POST",
+    body: JSON.stringify({ amount, orderData }),
+  });
+  return response;
+}
+
+// Test: Simulate delayed payment
+export async function testDelayedPayment(
+  amount: number,
+  orderData: any,
+  delayMs: number = 30000,
+) {
+  const response = await apiCall("/payment/test/delayed", {
+    method: "POST",
+    body: JSON.stringify({ amount, orderData, delayMs }),
+  });
+  return response;
 }

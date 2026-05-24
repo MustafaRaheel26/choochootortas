@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect } from "react";
 import { AppState, CartItem, OrderType } from "./types";
 import { MenuItem } from "./data/menu";
 import { useInactivityReset } from "./hooks/useInactivityReset";
@@ -14,6 +14,14 @@ import { motion, AnimatePresence } from "motion/react";
 import { TouchKeyboard } from "./components/TouchKeyboard";
 import { LanguageProvider } from "./context/LanguageContext";
 
+// Storage keys for persistence
+const STORAGE_KEYS = {
+  CART: 'kiosk_cart',
+  ORDER_TYPE: 'kiosk_order_type',
+  PAYMENT_SESSION_ID: 'kiosk_payment_session_id',
+  PAYMENT_STATE: 'kiosk_payment_state',
+};
+
 const INITIAL_STATE: AppState = {
   view: "home",
   selectedCategoryId: "tortas",
@@ -22,12 +30,91 @@ const INITIAL_STATE: AppState = {
   orderType: null,
 };
 
+// Helper: Load cart from localStorage
+const loadCartFromStorage = (): CartItem[] => {
+  try {
+    const saved = localStorage.getItem(STORAGE_KEYS.CART);
+    if (saved) {
+      return JSON.parse(saved);
+    }
+  } catch (error) {
+    console.error('Failed to load cart from storage:', error);
+  }
+  return [];
+};
+
+// Helper: Load order type from localStorage
+const loadOrderTypeFromStorage = (): OrderType | null => {
+  try {
+    const saved = localStorage.getItem(STORAGE_KEYS.ORDER_TYPE);
+    if (saved === 'eat-in' || saved === 'take-out') {
+      return saved;
+    }
+  } catch (error) {
+    console.error('Failed to load order type from storage:', error);
+  }
+  return null;
+};
+
+// Helper: Save cart to localStorage
+const saveCartToStorage = (cart: CartItem[]) => {
+  try {
+    localStorage.setItem(STORAGE_KEYS.CART, JSON.stringify(cart));
+  } catch (error) {
+    console.error('Failed to save cart to storage:', error);
+  }
+};
+
+// Helper: Save order type to localStorage
+const saveOrderTypeToStorage = (orderType: OrderType | null) => {
+  try {
+    if (orderType) {
+      localStorage.setItem(STORAGE_KEYS.ORDER_TYPE, orderType);
+    } else {
+      localStorage.removeItem(STORAGE_KEYS.ORDER_TYPE);
+    }
+  } catch (error) {
+    console.error('Failed to save order type to storage:', error);
+  }
+};
+
+// Helper: Clear all payment/storage data
+const clearPaymentStorage = () => {
+  localStorage.removeItem(STORAGE_KEYS.PAYMENT_SESSION_ID);
+  localStorage.removeItem(STORAGE_KEYS.PAYMENT_STATE);
+};
+
 export default function App() {
-  const [state, setState] = useState<AppState>(INITIAL_STATE);
+  // Initialize state from localStorage if available
+  const [state, setState] = useState<AppState>(() => {
+    const savedCart = loadCartFromStorage();
+    const savedOrderType = loadOrderTypeFromStorage();
+    
+    if (savedCart.length > 0 && savedOrderType) {
+      console.log('Restored cart from storage:', savedCart.length, 'items');
+      return {
+        ...INITIAL_STATE,
+        cart: savedCart,
+        orderType: savedOrderType,
+        view: savedCart.length > 0 ? "cart" : "home",
+      };
+    }
+    return INITIAL_STATE;
+  });
+
+  // Save cart to localStorage whenever it changes
+  useEffect(() => {
+    saveCartToStorage(state.cart);
+    saveOrderTypeToStorage(state.orderType);
+  }, [state.cart, state.orderType]);
 
   // Auto-reset to home after 60s of inactivity
   useInactivityReset(() => {
     if (state.view !== "home") {
+      // Clear storage on reset
+      localStorage.removeItem(STORAGE_KEYS.CART);
+      localStorage.removeItem(STORAGE_KEYS.ORDER_TYPE);
+      clearPaymentStorage();
       setState(INITIAL_STATE);
     }
   }, 60000);
@@ -44,13 +131,15 @@ export default function App() {
   }, [state.cart]);
 
   // Actions
-  const handleStart = (type: OrderType) =>
+  const handleStart = (type: OrderType) => {
+    clearPaymentStorage();
     setState({
       ...state,
       view: "menu",
       orderType: type,
       selectedCategoryId: "tortas",
     });
+  };
 
   const handleSelectCategory = (id: string) => {
     setState({ ...state, view: "menu", selectedCategoryId: id });
@@ -61,14 +150,23 @@ export default function App() {
   };
 
   const handleBack = () => {
-    if (state.view === "menu")
-      setState({ ...state, view: "home", orderType: null });
-    else if (state.view === "customize")
+    if (state.view === "menu") {
+      // Clear storage when going back to home
+      localStorage.removeItem(STORAGE_KEYS.CART);
+      localStorage.removeItem(STORAGE_KEYS.ORDER_TYPE);
+      clearPaymentStorage();
+      setState({ ...state, view: "home", orderType: null, cart: [] });
+    } else if (state.view === "customize") {
       setState({ ...state, view: "menu", selectedItem: null });
-    else if (state.view === "cart") setState({ ...state, view: "menu" });
+    } else if (state.view === "cart") {
+      setState({ ...state, view: "menu" });
+    }
   };
 
   const handleHome = () => {
+    localStorage.removeItem(STORAGE_KEYS.CART);
+    localStorage.removeItem(STORAGE_KEYS.ORDER_TYPE);
+    clearPaymentStorage();
     setState(INITIAL_STATE);
   };
 
@@ -83,20 +181,22 @@ export default function App() {
     setState((prev) => {
       const existing = prev.cart.find((item) => item.id === id);
       if (existing) {
+        const newCart = prev.cart.map((item) =>
+          item.id === id
+            ? { ...item, quantity: item.quantity + customizedItem.quantity }
+            : item,
+        );
         return {
           ...prev,
-          cart: prev.cart.map((item) =>
-            item.id === id
-              ? { ...item, quantity: item.quantity + customizedItem.quantity }
-              : item,
-          ),
+          cart: newCart,
           view: "cart",
           selectedItem: null,
         };
       }
+      const newCart = [...prev.cart, { ...customizedItem, id }];
       return {
         ...prev,
-        cart: [...prev.cart, { ...customizedItem, id }],
+        cart: newCart,
         view: "cart",
         selectedItem: null,
       };
@@ -115,6 +215,17 @@ export default function App() {
         .filter((item) => item.quantity > 0),
     }));
   };
+
+  // Handle page refresh recovery - check for pending payment
+  useEffect(() => {
+    const pendingPaymentSession = localStorage.getItem(STORAGE_KEYS.PAYMENT_SESSION_ID);
+    const pendingPaymentState = localStorage.getItem(STORAGE_KEYS.PAYMENT_STATE);
+    
+    if (pendingPaymentSession && pendingPaymentState === 'processing') {
+      console.log('Found pending payment session:', pendingPaymentSession);
+      // The CheckoutScreen will handle recovery via its own useEffect
+    }
+  }, []);
 
   return (
     <LanguageProvider>
