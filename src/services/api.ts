@@ -103,7 +103,9 @@ export interface CreateOrderRequest {
   items: OrderItem[];
   orderType: "eat-in" | "take-out";
   notes?: string;
-  paymentSessionId?: string; // Added: Links order to payment session
+  paymentSessionId?: string;
+  customerEmail?: string; // Added: Email for receipt
+  receiptPreference?: "print" | "email" | "none"; // Added: Receipt preference
 }
 
 export interface CreateOrderResponse {
@@ -115,8 +117,11 @@ export interface CreateOrderResponse {
   totalPrice: number;
   tax: number;
   subtotal: number;
-  paymentSessionId?: string; // Added: Returns the payment session ID
-  paymentTransactionId?: string; // Added: Returns the transaction ID
+  paymentSessionId?: string;
+  paymentTransactionId?: string;
+  customerEmail?: string;
+  receiptPreference?: string;
+  emailSent?: boolean;
 }
 
 // Create a new order (checkout) - Now requires payment approval

@@ -13,6 +13,9 @@ import {
   Home as HomeIcon,
   AlertCircle,
   RefreshCw,
+  Mail,
+  Printer as PrinterIcon,
+  X,
 } from "lucide-react";
 import {
   createOrder,
@@ -35,10 +38,14 @@ type ProcessingStep =
   | "processing_card"
   | "finalizing";
 
+type ReceiptPreference = "print" | "email" | "none";
+
 // Storage keys for persistence
 const STORAGE_KEYS = {
   PAYMENT_SESSION_ID: "kiosk_payment_session_id",
   PAYMENT_STATE: "kiosk_payment_state",
+  RECEIPT_PREFERENCE: "kiosk_receipt_preference",
+  CUSTOMER_EMAIL: "kiosk_customer_email",
 };
 
 export const CheckoutScreen: React.FC<CheckoutScreenProps> = ({
@@ -62,6 +69,13 @@ export const CheckoutScreen: React.FC<CheckoutScreenProps> = ({
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
   const [isRecovering, setIsRecovering] = useState(false);
 
+  // Receipt preference states
+  const [receiptPreference, setReceiptPreference] =
+    useState<ReceiptPreference>("print");
+  const [customerEmail, setCustomerEmail] = useState<string>("");
+  const [emailError, setEmailError] = useState<string>("");
+  const [showEmailInput, setShowEmailInput] = useState<boolean>(false);
+
   // Use refs to avoid state timing issues
   const paymentSessionIdRef = useRef<string | null>(null);
   const pollingIntervalRef = useRef<NodeJS.Timeout | null>(null);
@@ -79,6 +93,41 @@ export const CheckoutScreen: React.FC<CheckoutScreenProps> = ({
   const API_BASE_URL =
     import.meta.env.VITE_API_URL ||
     "https://choochootortas-backend.onrender.com/api";
+
+  // Load saved receipt preference from localStorage
+  useEffect(() => {
+    try {
+      const savedPreference = localStorage.getItem(
+        STORAGE_KEYS.RECEIPT_PREFERENCE,
+      ) as ReceiptPreference | null;
+      if (savedPreference) {
+        setReceiptPreference(savedPreference);
+        if (savedPreference === "email") {
+          setShowEmailInput(true);
+          const savedEmail = localStorage.getItem(STORAGE_KEYS.CUSTOMER_EMAIL);
+          if (savedEmail) {
+            setCustomerEmail(savedEmail);
+          }
+        }
+      }
+    } catch (error) {
+      console.error("Failed to load receipt preference:", error);
+    }
+  }, []);
+
+  // Save receipt preference to localStorage
+  const saveReceiptPreference = (preference: ReceiptPreference) => {
+    try {
+      localStorage.setItem(STORAGE_KEYS.RECEIPT_PREFERENCE, preference);
+      if (preference === "email" && customerEmail) {
+        localStorage.setItem(STORAGE_KEYS.CUSTOMER_EMAIL, customerEmail);
+      } else {
+        localStorage.removeItem(STORAGE_KEYS.CUSTOMER_EMAIL);
+      }
+    } catch (error) {
+      console.error("Failed to save receipt preference:", error);
+    }
+  };
 
   // Helper: Save payment session to localStorage
   const savePaymentSession = (sessionId: string) => {
@@ -114,6 +163,24 @@ export const CheckoutScreen: React.FC<CheckoutScreenProps> = ({
       console.error("Failed to get stored payment session:", error);
     }
     return null;
+  };
+
+  // Validate email
+  const isValidEmail = (email: string): boolean => {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return emailRegex.test(email);
+  };
+
+  // Handle receipt preference change
+  const handleReceiptPreferenceChange = (preference: ReceiptPreference) => {
+    setReceiptPreference(preference);
+    if (preference === "email") {
+      setShowEmailInput(true);
+    } else {
+      setShowEmailInput(false);
+      setEmailError("");
+    }
+    saveReceiptPreference(preference);
   };
 
   // Elapsed time timer for processing screen
@@ -295,11 +362,23 @@ export const CheckoutScreen: React.FC<CheckoutScreenProps> = ({
         extras: item.addedExtras.map((extra) => extra.name),
       }));
 
+      // Validate email if receipt preference is email
+      if (receiptPreference === "email") {
+        if (!customerEmail || !isValidEmail(customerEmail)) {
+          throw new Error(
+            "Please enter a valid email address for your receipt.",
+          );
+        }
+      }
+
       await createOrder({
         items: orderItems,
         orderType: orderType === "eat-in" ? "eat-in" : "take-out",
         notes: "",
         paymentSessionId: sessionId,
+        customerEmail:
+          receiptPreference === "email" ? customerEmail : undefined,
+        receiptPreference: receiptPreference,
       });
 
       // Clear payment session on success
@@ -394,11 +473,21 @@ export const CheckoutScreen: React.FC<CheckoutScreenProps> = ({
       return;
     }
 
+    // Validate email if receipt preference is email
+    if (receiptPreference === "email") {
+      if (!customerEmail || !isValidEmail(customerEmail)) {
+        setEmailError("Please enter a valid email address.");
+        setOrderError("Please enter a valid email address.");
+        return;
+      }
+    }
+
     paymentInitiatedRef.current = true;
     isProcessingRef.current = true;
     setPaymentState("processing");
     setProcessingStep("initiating");
     setOrderError(null);
+    setEmailError("");
 
     try {
       const orderItems = cart.map((item) => ({
@@ -696,9 +785,21 @@ export const CheckoutScreen: React.FC<CheckoutScreenProps> = ({
             <p className="text-lg text-white/50 font-bold uppercase tracking-widest leading-none">
               Your order is being prepared
             </p>
-            <p className="text-sm text-white/30 font-black uppercase tracking-[0.2em]">
-              Your order has been sent to the kitchen
-            </p>
+            {receiptPreference === "email" && customerEmail && (
+              <p className="text-sm text-white/40 font-medium">
+                Receipt sent to: {customerEmail}
+              </p>
+            )}
+            {receiptPreference === "none" && (
+              <p className="text-sm text-white/40 font-medium">
+                No receipt requested
+              </p>
+            )}
+            {receiptPreference === "print" && (
+              <p className="text-sm text-white/40 font-medium">
+                Printed receipt selected
+              </p>
+            )}
           </div>
 
           <Button
@@ -769,6 +870,89 @@ export const CheckoutScreen: React.FC<CheckoutScreenProps> = ({
                 <span>Terminal #01</span>
                 <span>{new Date().toLocaleDateString()}</span>
                 <span>{new Date().toLocaleTimeString()}</span>
+              </div>
+
+              {/* Receipt Preference Section */}
+              <div className="mt-6 pt-6 border-t border-dotted border-black/20">
+                <p className="text-[9px] font-black uppercase tracking-[0.4em] text-black/30 mb-3">
+                  Receipt Preference
+                </p>
+                <div className="flex flex-col gap-3 items-center">
+                  <div className="flex gap-3 flex-wrap justify-center">
+                    <button
+                      onClick={() => handleReceiptPreferenceChange("print")}
+                      className={`px-4 py-2 rounded-xl border-2 text-xs font-bold uppercase tracking-wider transition-all flex items-center gap-2 ${
+                        receiptPreference === "print"
+                          ? "border-primary bg-primary/10 text-primary"
+                          : "border-black/20 text-black/40 hover:border-black/40"
+                      }`}
+                    >
+                      <PrinterIcon size={14} />
+                      Print Receipt
+                    </button>
+                    <button
+                      onClick={() => handleReceiptPreferenceChange("email")}
+                      className={`px-4 py-2 rounded-xl border-2 text-xs font-bold uppercase tracking-wider transition-all flex items-center gap-2 ${
+                        receiptPreference === "email"
+                          ? "border-primary bg-primary/10 text-primary"
+                          : "border-black/20 text-black/40 hover:border-black/40"
+                      }`}
+                    >
+                      <Mail size={14} />
+                      Email Receipt
+                    </button>
+                    <button
+                      onClick={() => handleReceiptPreferenceChange("none")}
+                      className={`px-4 py-2 rounded-xl border-2 text-xs font-bold uppercase tracking-wider transition-all flex items-center gap-2 ${
+                        receiptPreference === "none"
+                          ? "border-primary bg-primary/10 text-primary"
+                          : "border-black/20 text-black/40 hover:border-black/40"
+                      }`}
+                    >
+                      <X size={14} />
+                      No Receipt
+                    </button>
+                  </div>
+
+                  {/* Email input - shown when email is selected */}
+                  {showEmailInput && (
+                    <div className="w-full max-w-sm mt-2">
+                      <div className="flex flex-col gap-1">
+                        <input
+                          type="email"
+                          placeholder="Enter email for receipt"
+                          value={customerEmail}
+                          onChange={(e) => {
+                            setCustomerEmail(e.target.value);
+                            setEmailError("");
+                            if (
+                              e.target.value &&
+                              isValidEmail(e.target.value)
+                            ) {
+                              localStorage.setItem(
+                                STORAGE_KEYS.CUSTOMER_EMAIL,
+                                e.target.value,
+                              );
+                            }
+                          }}
+                          className={`w-full px-4 py-2 rounded-xl border-2 text-sm font-medium bg-black/5 focus:outline-none focus:border-primary transition-colors ${
+                            emailError
+                              ? "border-red-500 focus:border-red-500"
+                              : "border-black/20 focus:border-primary"
+                          }`}
+                        />
+                        {emailError && (
+                          <p className="text-[10px] text-red-500 font-medium text-left">
+                            {emailError}
+                          </p>
+                        )}
+                        <p className="text-[8px] text-black/30 font-medium text-left">
+                          Your receipt will be sent to this email after payment
+                        </p>
+                      </div>
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
 
