@@ -14,7 +14,6 @@ import {
   AlertCircle,
   RefreshCw,
   Mail,
-  Printer as PrinterIcon,
   X,
 } from "lucide-react";
 import {
@@ -38,7 +37,7 @@ type ProcessingStep =
   | "processing_card"
   | "finalizing";
 
-type ReceiptPreference = "print" | "email" | "none";
+type ReceiptPreference = "email" | "none";
 
 // Storage keys for persistence
 const STORAGE_KEYS = {
@@ -71,10 +70,10 @@ export const CheckoutScreen: React.FC<CheckoutScreenProps> = ({
 
   // Receipt preference states
   const [receiptPreference, setReceiptPreference] =
-    useState<ReceiptPreference>("print");
+    useState<ReceiptPreference>("email");
   const [customerEmail, setCustomerEmail] = useState<string>("");
   const [emailError, setEmailError] = useState<string>("");
-  const [showEmailInput, setShowEmailInput] = useState<boolean>(false);
+  const [showEmailInput, setShowEmailInput] = useState<boolean>(true);
 
   // Use refs to avoid state timing issues
   const paymentSessionIdRef = useRef<string | null>(null);
@@ -109,6 +108,10 @@ export const CheckoutScreen: React.FC<CheckoutScreenProps> = ({
             setCustomerEmail(savedEmail);
           }
         }
+      } else {
+        // Default to email
+        setReceiptPreference("email");
+        setShowEmailInput(true);
       }
     } catch (error) {
       console.error("Failed to load receipt preference:", error);
@@ -795,11 +798,6 @@ export const CheckoutScreen: React.FC<CheckoutScreenProps> = ({
                 No receipt requested
               </p>
             )}
-            {receiptPreference === "print" && (
-              <p className="text-sm text-white/40 font-medium">
-                Printed receipt selected
-              </p>
-            )}
           </div>
 
           <Button
@@ -872,24 +870,13 @@ export const CheckoutScreen: React.FC<CheckoutScreenProps> = ({
                 <span>{new Date().toLocaleTimeString()}</span>
               </div>
 
-              {/* Receipt Preference Section */}
+              {/* Receipt Preference Section - Two Options Only */}
               <div className="mt-6 pt-6 border-t border-dotted border-black/20">
                 <p className="text-[9px] font-black uppercase tracking-[0.4em] text-black/30 mb-3">
                   Receipt Preference
                 </p>
                 <div className="flex flex-col gap-3 items-center">
                   <div className="flex gap-3 flex-wrap justify-center">
-                    <button
-                      onClick={() => handleReceiptPreferenceChange("print")}
-                      className={`px-4 py-2 rounded-xl border-2 text-xs font-bold uppercase tracking-wider transition-all flex items-center gap-2 ${
-                        receiptPreference === "print"
-                          ? "border-primary bg-primary/10 text-primary"
-                          : "border-black/20 text-black/40 hover:border-black/40"
-                      }`}
-                    >
-                      <PrinterIcon size={14} />
-                      Print Receipt
-                    </button>
                     <button
                       onClick={() => handleReceiptPreferenceChange("email")}
                       className={`px-4 py-2 rounded-xl border-2 text-xs font-bold uppercase tracking-wider transition-all flex items-center gap-2 ${
