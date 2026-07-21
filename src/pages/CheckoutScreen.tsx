@@ -132,6 +132,12 @@ export const CheckoutScreen: React.FC<CheckoutScreenProps> = ({
     }
   };
 
+  // Clear email after successful order (fix for Issue 2)
+  const clearEmailAfterOrder = () => {
+    setCustomerEmail("");
+    localStorage.removeItem(STORAGE_KEYS.CUSTOMER_EMAIL);
+  };
+
   // Helper: Save payment session to localStorage
   const savePaymentSession = (sessionId: string) => {
     try {
@@ -182,6 +188,7 @@ export const CheckoutScreen: React.FC<CheckoutScreenProps> = ({
     } else {
       setShowEmailInput(false);
       setEmailError("");
+      clearEmailAfterOrder();
     }
     saveReceiptPreference(preference);
   };
@@ -383,6 +390,9 @@ export const CheckoutScreen: React.FC<CheckoutScreenProps> = ({
           receiptPreference === "email" ? customerEmail : undefined,
         receiptPreference: receiptPreference,
       });
+
+      // Clear email after successful order (fix for Issue 2)
+      clearEmailAfterOrder();
 
       // Clear payment session on success
       clearPaymentSession();
