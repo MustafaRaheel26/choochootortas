@@ -132,9 +132,10 @@ export const CheckoutScreen: React.FC<CheckoutScreenProps> = ({
     }
   };
 
-  // Clear email after successful order (fix for Issue 2)
+  // Clear email after successful order
   const clearEmailAfterOrder = () => {
     setCustomerEmail("");
+    setEmailError("");
     localStorage.removeItem(STORAGE_KEYS.CUSTOMER_EMAIL);
   };
 
@@ -391,7 +392,7 @@ export const CheckoutScreen: React.FC<CheckoutScreenProps> = ({
         receiptPreference: receiptPreference,
       });
 
-      // Clear email after successful order (fix for Issue 2)
+      // Clear email after successful order
       clearEmailAfterOrder();
 
       // Clear payment session on success
