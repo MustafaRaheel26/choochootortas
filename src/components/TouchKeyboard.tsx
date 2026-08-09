@@ -18,7 +18,8 @@ export const TouchKeyboard: React.FC<TouchKeyboardProps> = ({
   const rows = [
     ["Q", "W", "E", "R", "T", "Y", "U", "I", "O", "P"],
     ["A", "S", "D", "F", "G", "H", "J", "K", "L"],
-    ["Z", "X", "C", "V", "B", "N", "M", " ", "@", "."],
+    ["Z", "X", "C", "V", "B", "N", "M"],
+    ["@", ".", " "],
   ];
 
   const handleKeyClick = (key: string) => {
@@ -30,9 +31,9 @@ export const TouchKeyboard: React.FC<TouchKeyboardProps> = ({
   };
 
   return (
-    <div className="bg-black/95 backdrop-blur-xl border-t-2 border-primary/30 p-6 pb-8 shadow-[0_-20px_60px_rgba(0,0,0,0.9)]">
+    <div className="bg-black/95 border-t-2 border-primary/30 p-4 pb-6 shadow-[0_-20px_60px_rgba(0,0,0,0.9)]">
       <div className="max-w-5xl mx-auto">
-        <div className="flex flex-col gap-3">
+        <div className="flex flex-col gap-2.5">
           {rows.map((row, i) => (
             <div key={i} className="flex justify-center gap-2">
               {row.map((key) => (
@@ -41,37 +42,33 @@ export const TouchKeyboard: React.FC<TouchKeyboardProps> = ({
                   onClick={() => handleKeyClick(key)}
                   className={`
                     flex items-center justify-center
-                    ${key === " " ? "w-40" : "w-14 h-16"} 
-                    ${key === "@" || key === "." ? "w-14 h-16" : "w-14 h-16"}
+                    ${key === " " ? "w-60" : "w-14 h-14"} 
+                    ${key === "@" || key === "." ? "w-14 h-14" : "w-14 h-14"}
                     bg-[#1a1a1a] rounded-xl shadow-sm active:bg-primary active:text-black active:scale-95 transition-all
                     text-2xl font-bold border border-white/10 text-white hover:bg-[#2a2a2a]
                   `}
                 >
-                  {key === " " ? (
-                    <Space className="w-8 h-8 text-white/60" />
-                  ) : (
-                    key
-                  )}
+                  {key === " " ? <Space className="w-7 h-7 text-white/60" /> : key}
                 </button>
               ))}
-              {i === 2 && (
+              {i === 3 && (
                 <button
                   onClick={handleBackspace}
-                  className="w-20 h-16 bg-primary/20 border-2 border-primary/40 rounded-xl shadow-sm active:bg-primary active:text-black active:scale-95 transition-all flex items-center justify-center hover:bg-primary/30"
+                  className="w-20 h-14 bg-primary/20 border-2 border-primary/40 rounded-xl shadow-sm active:bg-primary active:text-black active:scale-95 transition-all flex items-center justify-center hover:bg-primary/30"
                 >
-                  <Delete className="w-8 h-8 text-primary" />
+                  <Delete className="w-7 h-7 text-primary" />
                 </button>
               )}
             </div>
           ))}
         </div>
 
-        <div className="flex justify-center mt-6">
+        <div className="flex justify-center mt-4">
           <Button
             variant="primary"
-            size="lg"
+            size="md"
             onClick={onClose}
-            className="rounded-2xl px-16 h-14 text-lg font-black uppercase tracking-widest"
+            className="rounded-xl px-12 h-12 text-base font-black uppercase tracking-widest"
           >
             Done
           </Button>

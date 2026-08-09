@@ -85,7 +85,7 @@ export const CheckoutScreen: React.FC<CheckoutScreenProps> = ({
   const isProcessingRef = useRef(false);
   const pollingStoppedRef = useRef(false);
   const elapsedTimerRef = useRef<NodeJS.Timeout | null>(null);
-  const recoveryAttemptedRef = useRef(false); // Prevent multiple recovery attempts
+  const recoveryAttemptedRef = useRef(false);
   const emailInputRef = useRef<HTMLInputElement>(null);
 
   const tax = total * (taxRate / 100);
@@ -191,7 +191,7 @@ export const CheckoutScreen: React.FC<CheckoutScreenProps> = ({
     if (preference === "email") {
       setShowEmailInput(true);
       // Automatically show keyboard when email is selected
-      setShowKeyboard(true);
+      setTimeout(() => setShowKeyboard(true), 300);
     } else {
       setShowEmailInput(false);
       setEmailError("");
@@ -606,7 +606,7 @@ export const CheckoutScreen: React.FC<CheckoutScreenProps> = ({
     orderCreatedRef.current = false;
     pollingStoppedRef.current = false;
     paymentSessionIdRef.current = null;
-    recoveryAttemptedRef.current = false; // Reset recovery flag
+    recoveryAttemptedRef.current = false;
   };
 
   const handlePayment = () => {
@@ -627,7 +627,7 @@ export const CheckoutScreen: React.FC<CheckoutScreenProps> = ({
     orderCreatedRef.current = false;
     pollingStoppedRef.current = false;
     paymentSessionIdRef.current = null;
-    recoveryAttemptedRef.current = false; // Reset recovery flag
+    recoveryAttemptedRef.current = false;
   };
 
   // Get processing step message
@@ -975,7 +975,7 @@ export const CheckoutScreen: React.FC<CheckoutScreenProps> = ({
                           </p>
                         )}
                         <p className="text-[8px] text-black/30 font-medium text-left">
-                          Tap the input to open the keyboard
+                          Tap to open keyboard
                         </p>
                       </div>
                     </div>
@@ -1058,14 +1058,15 @@ export const CheckoutScreen: React.FC<CheckoutScreenProps> = ({
         </div>
       </div>
 
-      {/* Touch Keyboard - positioned over the content */}
+      {/* Touch Keyboard - positioned over the bottom of the screen */}
       {showKeyboard && showEmailInput && (
-        <div className="absolute inset-0 z-[300] flex flex-col justify-end">
+        <div className="absolute inset-0 z-[300] flex flex-col justify-end pointer-events-none">
+          {/* Invisible overlay that allows clicking to close keyboard */}
           <div
-            className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+            className="flex-1 pointer-events-auto"
             onClick={handleKeyboardClose}
           />
-          <div className="relative z-10">
+          <div className="relative z-10 pointer-events-auto">
             <TouchKeyboard
               value={customerEmail}
               onChange={handleKeyboardInput}
