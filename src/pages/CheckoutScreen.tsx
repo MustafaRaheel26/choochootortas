@@ -22,6 +22,7 @@ import {
   NextOrderNumber,
   fetchTaxRate,
 } from "../services/api";
+import { TouchKeyboard } from "../components/TouchKeyboard";
 
 interface CheckoutScreenProps {
   onHome: () => void;
@@ -74,6 +75,7 @@ export const CheckoutScreen: React.FC<CheckoutScreenProps> = ({
   const [customerEmail, setCustomerEmail] = useState<string>("");
   const [emailError, setEmailError] = useState<string>("");
   const [showEmailInput, setShowEmailInput] = useState<boolean>(true);
+  const [showKeyboard, setShowKeyboard] = useState<boolean>(false);
 
   // Use refs to avoid state timing issues
   const paymentSessionIdRef = useRef<string | null>(null);
@@ -84,6 +86,7 @@ export const CheckoutScreen: React.FC<CheckoutScreenProps> = ({
   const pollingStoppedRef = useRef(false);
   const elapsedTimerRef = useRef<NodeJS.Timeout | null>(null);
   const recoveryAttemptedRef = useRef(false); // Prevent multiple recovery attempts
+  const emailInputRef = useRef<HTMLInputElement>(null);
 
   const tax = total * (taxRate / 100);
   const grandTotal = total + tax;
@@ -136,6 +139,7 @@ export const CheckoutScreen: React.FC<CheckoutScreenProps> = ({
   const clearEmailAfterOrder = () => {
     setCustomerEmail("");
     setEmailError("");
+    setShowKeyboard(false);
     localStorage.removeItem(STORAGE_KEYS.CUSTOMER_EMAIL);
   };
 
@@ -186,12 +190,34 @@ export const CheckoutScreen: React.FC<CheckoutScreenProps> = ({
     setReceiptPreference(preference);
     if (preference === "email") {
       setShowEmailInput(true);
+      // Automatically show keyboard when email is selected
+      setShowKeyboard(true);
     } else {
       setShowEmailInput(false);
       setEmailError("");
+      setShowKeyboard(false);
       clearEmailAfterOrder();
     }
     saveReceiptPreference(preference);
+  };
+
+  // Handle email input focus - show keyboard
+  const handleEmailFocus = () => {
+    setShowKeyboard(true);
+  };
+
+  // Handle keyboard close
+  const handleKeyboardClose = () => {
+    setShowKeyboard(false);
+  };
+
+  // Handle keyboard input
+  const handleKeyboardInput = (value: string) => {
+    setCustomerEmail(value);
+    setEmailError("");
+    if (value && isValidEmail(value)) {
+      localStorage.setItem(STORAGE_KEYS.CUSTOMER_EMAIL, value);
+    }
   };
 
   // Elapsed time timer for processing screen
@@ -917,9 +943,11 @@ export const CheckoutScreen: React.FC<CheckoutScreenProps> = ({
                     <div className="w-full max-w-sm mt-2">
                       <div className="flex flex-col gap-1">
                         <input
+                          ref={emailInputRef}
                           type="email"
                           placeholder="Enter email for receipt"
                           value={customerEmail}
+                          onFocus={handleEmailFocus}
                           onChange={(e) => {
                             setCustomerEmail(e.target.value);
                             setEmailError("");
@@ -938,6 +966,8 @@ export const CheckoutScreen: React.FC<CheckoutScreenProps> = ({
                               ? "border-red-500 focus:border-red-500"
                               : "border-black/20 focus:border-primary"
                           }`}
+                          readOnly
+                          onClick={handleEmailFocus}
                         />
                         {emailError && (
                           <p className="text-[10px] text-red-500 font-medium text-left">
@@ -945,7 +975,7 @@ export const CheckoutScreen: React.FC<CheckoutScreenProps> = ({
                           </p>
                         )}
                         <p className="text-[8px] text-black/30 font-medium text-left">
-                          Your receipt will be sent to this email after payment
+                          Tap the input to open the keyboard
                         </p>
                       </div>
                     </div>
@@ -1027,6 +1057,23 @@ export const CheckoutScreen: React.FC<CheckoutScreenProps> = ({
           </motion.div>
         </div>
       </div>
+
+      {/* Touch Keyboard - positioned over the content */}
+      {showKeyboard && showEmailInput && (
+        <div className="absolute inset-0 z-[300] flex flex-col justify-end">
+          <div
+            className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+            onClick={handleKeyboardClose}
+          />
+          <div className="relative z-10">
+            <TouchKeyboard
+              value={customerEmail}
+              onChange={handleKeyboardInput}
+              onClose={handleKeyboardClose}
+            />
+          </div>
+        </div>
+      )}
 
       <div className="absolute bottom-0 inset-x-0 bg-black/80 backdrop-blur-xl border-t border-primary/20 p-8 lg:p-12 z-[150] shadow-[0_-20px_60px_rgba(0,0,0,0.8)]">
         <div className="max-w-2xl mx-auto flex flex-col gap-4">
