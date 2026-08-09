@@ -16,9 +16,9 @@ export const TouchKeyboard: React.FC<TouchKeyboardProps> = ({
 }) => {
   const { t } = useLanguage();
   const rows = [
-    ["Q", "W", "E", "R", "T", "Y", "U", "I", "O", "P"],
-    ["A", "S", "D", "F", "G", "H", "J", "K", "L"],
-    ["Z", "X", "C", "V", "B", "N", "M"],
+    ["q", "w", "e", "r", "t", "y", "u", "i", "o", "p"],
+    ["a", "s", "d", "f", "g", "h", "j", "k", "l"],
+    ["z", "x", "c", "v", "b", "n", "m"],
     ["@", ".", " "],
   ];
 
@@ -48,7 +48,11 @@ export const TouchKeyboard: React.FC<TouchKeyboardProps> = ({
                     text-2xl font-bold border border-white/10 text-white hover:bg-[#2a2a2a]
                   `}
                 >
-                  {key === " " ? <Space className="w-7 h-7 text-white/60" /> : key}
+                  {key === " " ? (
+                    <Space className="w-7 h-7 text-white/60" />
+                  ) : (
+                    key
+                  )}
                 </button>
               ))}
               {i === 3 && (
